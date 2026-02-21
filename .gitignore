@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Project specific
+outputs/
+!outputs/processed_articles.txt
+
+# OS
+.DS_Store
+
+# Google Cloud / Secrets (just in case they were downloaded)
+*.json
+!get_refresh_token.py
