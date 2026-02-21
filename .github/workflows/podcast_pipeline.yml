@@ -46,7 +46,7 @@ jobs:
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git add outputs/processed_articles.txt
+        git add -f outputs/processed_articles.txt
         # 変更がある場合のみコミット
         if ! git diff --cached --exit-code; then
           git commit -m "Update processed articles [skip ci]"
