@@ -8,6 +8,8 @@ venv/
 # Project specific
 outputs/
 !outputs/processed_articles.txt
+list_models.py
+nejmweek.py
 
 # OS
 .DS_Store
