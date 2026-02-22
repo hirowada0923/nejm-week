@@ -5,8 +5,8 @@ NEJM（New England Journal of Medicine）の循環器領域の最新論文を自
 ## 主な機能
 
 - **自動収集**: NEJM の RSS フィードから循環器系の「Original Article」を自動でピックアップ。
-- **AI 要約 & 台本作成**: Gemini 1.5 Flash を使用し、論文の要旨を日本語で分かりやすく解説。
-- **マルチスピーカー音声生成**: Gemini 2.0 Flash (TTS) を使用し、男女2人のホストによる対話形式の Podcast を生成。
+- **AI 要約 & 台本作成**: Gemini 3.0 Flash を使用し、論文の要旨を日本語で分かりやすく解説。
+- **マルチスピーカー音声生成**: Gemini 2.5 Flash (TTS) を使用し、男女2人のホストによる対話形式の Podcast を生成。
 - **クラウド保存**: 生成された音声とレポートは自動的に Google Drive にアップロード。
 - **多宛先通知**: 指定した複数のメールアドレスに Gmail 経由で通知を送信。
 - **GitHub Actions による自動化**: 毎週月曜日の朝 04:00 (JST) に完全自動で実行。
