@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 class ScriptGenerator:
-    def __init__(self, api_key, model_name="gemini-3-flash-preview"):
+    def __init__(self, api_key, model_name="gemini-flash-latest"):
         self.client = genai.Client(api_key=api_key)
         self.model_name = model_name
         self.logger = logging.getLogger(__name__)

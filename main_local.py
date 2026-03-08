@@ -42,7 +42,7 @@ def main():
 
     # Step 2: Generate Content (Script + Report)
     logger.info("--- Step 2: Generating Content (Script + Report) ---")
-    generator = ScriptGenerator(api_key=gemini_api_key, model_name="gemini-3-flash-preview")
+    generator = ScriptGenerator(api_key=gemini_api_key)
     content = generator.generate_content(papers_data)
     
     if not content or "script" not in content or "report" not in content:
@@ -64,7 +64,7 @@ def main():
 
     # Step 3: Generate Audio (TTS)
     logger.info("--- Step 3: Generating Audio (TTS) ---")
-    tts = TTSEngine(api_key=gemini_api_key, model_name="gemini-2.5-flash-preview-tts")
+    tts = TTSEngine(api_key=gemini_api_key)
     audio_path = os.path.join(output_dir, f"podcast_audio_{today_str}.wav")
     
     if tts.generate_audio(script, audio_path):
