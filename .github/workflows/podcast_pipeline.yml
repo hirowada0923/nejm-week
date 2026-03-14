@@ -32,6 +32,7 @@ jobs:
     - name: Run pipeline
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         PUBMED_EMAIL: ${{ secrets.PUBMED_EMAIL }}
         G_CLIENT_ID: ${{ secrets.G_CLIENT_ID }}
         G_CLIENT_SECRET: ${{ secrets.G_CLIENT_SECRET }}
