@@ -107,14 +107,23 @@ class ScriptGenerator:
         """
         Main entry point to generate Japanese script and report.
         """
-        # Split records (separated by double newline)
-        records = re.split(r'\n\s*\n', papers_text.strip())
+        # Use the robust separator introduced in fetcher.py
+        separator = "---END_OF_PAPER---"
+        raw_records = [r.strip() for r in papers_text.split(separator) if r.strip()]
+        
+        self.logger.info(f"Splitting content into {len(raw_records)} records using {separator}")
+        
         processed_articles = []
-        for record in records:
-            if record.strip():
-                article_data = self._extract_rich_data(record)
-                if article_data:
-                    processed_articles.append(article_data)
+        for i, record in enumerate(raw_records):
+            # Basic validation: must contain a title field
+            if "TI  - " not in record:
+                self.logger.warning(f"Record {i+1} seems malformed (no title tag). Skipping.")
+                continue
+                
+            self.logger.info(f"Structured extraction for record {i+1}/{len(raw_records)}...")
+            article_data = self._extract_rich_data(record)
+            if article_data:
+                processed_articles.append(article_data)
         
         if not processed_articles:
             self.logger.warning("No articles successfully structured.")

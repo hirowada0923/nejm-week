@@ -217,7 +217,9 @@ class NEJMFetcher:
                 self.logger.info("No new articles found.")
                 return None, []
 
-            papers_text = "\n\n".join(valid_papers) if valid_papers else None
+            # Use a robust separator to avoid accidental splits due to newlines within content
+            separator = "\n---END_OF_PAPER---\n"
+            papers_text = separator.join(valid_papers) if valid_papers else None
             
             if papers_text and output_dir:
                 os.makedirs(output_dir, exist_ok=True)
