@@ -6,6 +6,7 @@ import email.utils
 import logging
 import re
 from Bio import Entrez
+from tavily import TavilyClient
 
 class NEJMFetcher:
     RSS_URL = "https://onesearch-rss.nejm.org/api/specialty/rss?context=nejm&specialty=cardiology"
@@ -13,6 +14,12 @@ class NEJMFetcher:
     def __init__(self, email):
         Entrez.email = email
         self.logger = logging.getLogger(__name__)
+        self.tavily_api_key = os.getenv("TAVILY_API_KEY")
+        if self.tavily_api_key:
+            self.tavily = TavilyClient(api_key=self.tavily_api_key)
+        else:
+            self.logger.warning("TAVILY_API_KEY not found in environment.")
+            self.tavily = None
 
     def get_date_range(self):
         """
@@ -77,6 +84,34 @@ class NEJMFetcher:
             self.logger.error(f"Error fetching abstract from PubMed: {e}")
             return None
 
+    def search_tavily_for_context(self, title, doi):
+        """
+        Fetch rich context and abstract info via Tavily.
+        """
+        if not self.tavily:
+            return None
+        
+        try:
+            self.logger.info(f"Searching Tavily for: {title} ({doi})")
+            query = f'"{title}" {doi} clinical significance and abstract dosage methodology'
+            search_result = self.tavily.search(
+                query=query,
+                search_depth="advanced",
+                include_answer=True,
+                max_results=5
+            )
+            
+            context_text = "\n".join([r['content'] for r in search_result['results']])
+            tavily_answer = search_result.get('answer', '')
+            
+            return {
+                "answer": tavily_answer,
+                "context": context_text
+            }
+        except Exception as e:
+            self.logger.error(f"Error searching Tavily: {e}")
+            return None
+
     def _get_processed_ids(self, output_dir):
         """Load processed article DOIs from a file."""
         file_path = os.path.join(output_dir, "processed_articles.txt")
@@ -86,9 +121,14 @@ class NEJMFetcher:
             return set(line.strip() for line in f if line.strip())
 
     def _save_processed_id(self, output_dir, article_id):
-        """Append a processed article DOI to the file."""
+        """Append a processed article DOI to the file if not already present."""
         file_path = os.path.join(output_dir, "processed_articles.txt")
         os.makedirs(output_dir, exist_ok=True)
+        
+        existing_ids = self._get_processed_ids(output_dir)
+        if article_id in existing_ids:
+            return
+
         with open(file_path, "a", encoding="utf-8") as f:
             f.write(f"{article_id}\n")
 
@@ -135,7 +175,7 @@ class NEJMFetcher:
                 doi = doi_match.group(0)
 
                 # Skip if already processed
-                if doi in processed_ids:
+                if doi in processed_ids or doi in newly_processed_ids:
                     continue
 
                 # Get date
@@ -150,14 +190,24 @@ class NEJMFetcher:
                     # Check if Original Article
                     if "NEJMoa" in link:
                         self.logger.info(f"Found new Original Article: {title}")
+                        
+                        # Primary: PubMed (for facts)
                         abstract = self.fetch_abstract_via_pubmed(link)
-                        if abstract:
-                            # Format as a pseudo-MEDLINE record for ScriptGenerator compatibility
-                            paper_record = f"TI  - {title}\nAB  - {abstract}\nLINK - {link}\nDP  - {pub_date.strftime('%Y %b %d')}"
+                        
+                        # Enrichment: Tavily (for context & missing abstracts)
+                        tavily_data = self.search_tavily_for_context(title, doi)
+                        
+                        if abstract or (tavily_data and tavily_data['answer']):
+                            # Combine data into a structured format for generator
+                            # We keep pseudo-MEDLINE-ish tags but add context fields
+                            paper_record = f"TI  - {title}\nAB  - {abstract if abstract else ''}\nDOI - {doi}\nLINK - {link}\nDP  - {pub_date.strftime('%Y %b %d')}"
+                            if tavily_data:
+                                paper_record += f"\nTAV_ANS - {tavily_data['answer']}\nTAV_CTX - {tavily_data['context']}"
+                            
                             valid_papers.append(paper_record)
                             newly_processed_ids.append(doi)
                         else:
-                            self.logger.warning(f"Could not fetch abstract for: {title}")
+                            self.logger.warning(f"No source (PubMed/Tavily) found for: {title}. Skipping for retry.")
                     else:
                         # For non-original articles, we still want to mark them as "seen" 
                         # so they don't reappear in future runs.
@@ -174,7 +224,7 @@ class NEJMFetcher:
                 save_path = os.path.join(output_dir, "pubmed_data.txt")
                 with open(save_path, "w", encoding="utf-8") as f:
                     f.write(papers_text)
-                self.logger.info(f"Fetched RSS/PubMed data saved to {save_path}")
+                self.logger.info(f"Fetched RSS/Tavily/PubMed data saved to {save_path}")
 
             return papers_text, newly_processed_ids
 
