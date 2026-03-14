@@ -54,6 +54,7 @@ GitHub Actions などの自動実行で、ブラウザを開かずに認証を�
 | Secret 名 | 内容 |
 | :--- | :--- |
 | `GEMINI_API_KEY` | 取得済みの Gemini API キー |
+| `TAVILY_API_KEY` | 取得済みの Tavily API キー |
 | `G_CLIENT_ID` | 手順 2 で取得したクライアント ID |
 | `G_CLIENT_SECRET` | 手順 2 で取得したクライアント シークレット |
 | `G_REFRESH_TOKEN` | 手順 3 で取得したリフレッシュトークン |
