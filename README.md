@@ -6,7 +6,7 @@ NEJM（New England Journal of Medicine）の循環器領域の最新論文を自
 
 - **ハイブリッド情報収集**: NEJM の RSS フィードを基点とし、**PubMed**（厳密な抄録データ）と **Tavily API**（広範な Web コンテキスト）を組み合わせて情報を収集。
 - **タイムリーな処理**: PubMed への抄録登録を待たずに、Tavily を通じて最新の臨床情報をいち早くキャッチアップ。
-- **AI 構造化解析**: Gemini (`gemini-3.5-flash`) を使用し、医学的事実（Fact）と臨床的背景（Context）を Pydantic で構造化して抽出。
+- **AI 構造化解析**: Gemini (`gemini-3.6-flash`) を使用し、医学的事実（Fact）と臨床的背景（Context）を Pydantic で構造化して抽出。
 - **マルチスピーカー音声生成**: Gemini 2.5 Flash (TTS) を使用し、男女2人のホストによる対話形式の Podcast を生成。
 - **詳細レポート & ラベル機能**: Markdown レポート内で「NEJM 論文」か「その他の論文」かを自動判定して明記。
 - **構造化データのエクスポート**: 処理した論文のメタデータや解析内容を JSON フォーマットで `outputs/` に自動保存。
