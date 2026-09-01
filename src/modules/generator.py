@@ -29,9 +29,9 @@ class ArticleData(BaseModel):
     source_url: str
 
 class ScriptGenerator:
-    def __init__(self, api_key, model_name="gemini-flash-latest"):
+    def __init__(self, api_key, model_name=None):
         self.client = genai.Client(api_key=api_key)
-        self.model_name = "gemini-flash-latest"
+        self.model_name = model_name or os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
         self.logger = logging.getLogger(__name__)
 
     def _extract_rich_data(self, paper_record: str) -> Optional[ArticleData]:
