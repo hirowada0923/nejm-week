@@ -25,14 +25,18 @@ class GoogleDriveStorage:
             logging.error(f"Failed to initialize Google Drive service with OAuth2: {e}")
             raise
 
-    def upload_file(self, file_path, folder_id=None, mime_type=None):
+    def upload_file(self, file_path, folder_id=None, mime_type=None, convert_to_docs=False):
         """
         Uploads a file to Google Drive and returns its webViewLink.
+        If convert_to_docs is True, converts text/markdown files to native Google Docs format.
         """
         file_name = os.path.basename(file_path)
         file_metadata = {'name': file_name}
         if folder_id:
             file_metadata['parents'] = [folder_id]
+
+        if convert_to_docs:
+            file_metadata['mimeType'] = 'application/vnd.google-apps.document'
 
         media = MediaFileUpload(file_path, mimetype=mime_type, resumable=True)
 

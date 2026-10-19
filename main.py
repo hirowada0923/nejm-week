@@ -94,7 +94,8 @@ def main():
     logger.info("--- Step 4: Uploading to Google Drive ---")
     storage = GoogleDriveStorage(g_client_id, g_client_secret, g_refresh_token)
     audio_data = storage.upload_file(audio_path, folder_id=folder_id, mime_type="audio/wav")
-    report_data = storage.upload_file(report_path, folder_id=folder_id, mime_type="text/markdown")
+    # Convert markdown to Google Docs on Drive so it renders perfectly on iOS/mobile
+    report_data = storage.upload_file(report_path, folder_id=folder_id, mime_type="text/markdown", convert_to_docs=True)
 
     if not audio_data or not report_data:
         logger.error("Failed to upload files to Google Drive.")
@@ -108,17 +109,132 @@ def main():
     logger.info("--- Step 5: Sending Notification ---")
     notifier = GmailNotifier(gmail_sender, gmail_password)
     subject = "今週の NEJM 循環器論文 Podcast & レポートが完成しました"
-    body = f"""今週の NEJM 循環器領域の論文解説が完成しました。内容は以下のリンクからご確認いただけます。
+    
+    # Plain text fallback
+    body = f"""今週の NEJM 循環器領域の論文解説が完成しました。内容は以下のリンクまたは本メール本文からご確認いただけます。
 
-【今週のニュースレター（レポート）】
+【今週のニュースレター（Googleドキュメント）】
 {report_url}
 
 【音声解説（Podcast）直リンク】
 {audio_url}
 
+--------------------------------------------------
+{report}
+--------------------------------------------------
+
 日々の診療の合間や通勤時間に、読み物、または音声としてお役立てください。
 """
-    if notifier.send_notification(recipient_emails, subject, body):
+
+    # HTML body with mobile-friendly typography and embedded report
+    import markdown
+    html_report_content = markdown.markdown(report, extensions=['extra'])
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #24292e;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 16px;
+    background-color: #ffffff;
+  }}
+  .action-box {{
+    background-color: #f6f8fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+  }}
+  .button {{
+    display: inline-block;
+    padding: 10px 18px;
+    margin: 6px 8px 6px 0;
+    background-color: #0366d6;
+    color: #ffffff !important;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 14px;
+  }}
+  .button-secondary {{
+    background-color: #2ea44f;
+  }}
+  h1 {{
+    font-size: 20px;
+    border-bottom: 2px solid #eaecef;
+    padding-bottom: 8px;
+    margin-top: 24px;
+    color: #1a1a1a;
+  }}
+  h2 {{
+    font-size: 18px;
+    border-bottom: 1px solid #eaecef;
+    padding-bottom: 6px;
+    margin-top: 20px;
+    color: #2c3e50;
+  }}
+  h3 {{
+    font-size: 16px;
+    margin-top: 18px;
+    color: #1b6acb;
+  }}
+  h4 {{
+    font-size: 14px;
+    margin-top: 12px;
+    margin-bottom: 4px;
+    color: #444;
+  }}
+  ul, ol {{
+    padding-left: 20px;
+  }}
+  li {{
+    margin-bottom: 4px;
+  }}
+  a {{
+    color: #0366d6;
+    text-decoration: underline;
+  }}
+  hr {{
+    border: 0;
+    height: 1px;
+    background: #e1e4e8;
+    margin: 24px 0;
+  }}
+  .footer {{
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+    font-size: 12px;
+    color: #6a737d;
+  }}
+</style>
+</head>
+<body>
+  <div class="action-box">
+    <p style="margin: 0 0 12px 0; font-size: 15px; font-weight: bold;">今週の NEJM 循環器論文解説が完成しました。</p>
+    <div>
+      <a href="{audio_url}" class="button">🎧 音声解説（Podcast）を聴く</a>
+      <a href="{report_url}" class="button button-secondary">📄 Google Docsで開く</a>
+    </div>
+  </div>
+
+  <div class="report-content">
+    {html_report_content}
+  </div>
+
+  <div class="footer">
+    <p>日々の診療の合間や通勤時間に、読み物、または音声としてお役立てください。</p>
+  </div>
+</body>
+</html>"""
+
+    if notifier.send_notification(recipient_emails, subject, body, html_body=html_body):
         logger.info("All steps completed successfully. Committing processed IDs.")
         fetcher.mark_as_processed(processed_ids)
         

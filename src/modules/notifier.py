@@ -9,10 +9,11 @@ class GmailNotifier:
         self.app_password = app_password
         self.logger = logging.getLogger(__name__)
 
-    def send_notification(self, recipient_emails, subject, body):
+    def send_notification(self, recipient_emails, subject, body, html_body=None):
         """
         Sends an email notification via Gmail SMTP.
         recipient_emails can be a string (single email) or a list of strings.
+        If html_body is provided, sends as multipart/alternative (both plain and HTML).
         """
         if isinstance(recipient_emails, str):
             recipient_list = [email.strip() for email in recipient_emails.split(',')]
@@ -21,12 +22,17 @@ class GmailNotifier:
             recipient_list = recipient_emails
             recipient_str = ", ".join(recipient_list)
 
-        msg = MIMEMultipart()
+        msg = MIMEMultipart('alternative')
         msg['From'] = self.sender_email
         msg['To'] = recipient_str
         msg['Subject'] = subject
 
-        msg.attach(MIMEText(body, 'plain'))
+        # Always attach plain text as fallback
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
+        # If HTML body is available, attach HTML part
+        if html_body:
+            msg.attach(MIMEText(html_body, 'html', 'utf-8'))
 
         try:
             self.logger.info(f"Sending notification to {recipient_str}...")
