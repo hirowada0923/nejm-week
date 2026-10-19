@@ -17,6 +17,8 @@ class PaperInfo(BaseModel):
     methodology: str    = Field(description="サンプルサイズ、期間、投与スケジュール等")
     conclusion: str     = Field(description="主要アウトカムの具体的な数値結果")
     original_abstract: Optional[str] = Field(description="MEDLINEフォーマットのABフィールドの内容（背景、方法、結果、結論の構成維持のため）")
+    is_cardiology: bool = Field(description="心臓、血管、不整脈、弁膜症、心不全、動脈硬化、血栓症、脂質・高血圧管理など、循環器内科医が日常診療や当直で対象とする疾患・領域に該当するか（Yes=True, No=False）")
+    cardiology_relevance_reason: str = Field(description="循環器領域に該当する（または除外する）と判定した具体的な理由（1文）")
 
 class SupplementaryContext(BaseModel):
     clinical_significance: str = Field(description="歴史的背景、他の試験との比較、臨床的意義")
@@ -55,6 +57,8 @@ class ScriptGenerator:
    - methodology (String): サンプルサイズ、期間、投与スケジュール、対象患者等の詳細
    - conclusion (String): 主要アウトカムの具体的な数値結果
    - original_abstract (String): ABフィールド（抄録）の全文
+   - is_cardiology (Boolean): 心臓・血管・不整脈・弁膜症・心不全・動脈硬化・血栓症・心血管死リスクなど循環器領域に実質的に関連するか（true/false）。睡眠医学・精神神経・呼吸器単独・消化器単独など循環器無関係はfalse
+   - cardiology_relevance_reason (String): 循環器領域への該当性（または非該当）の判定理由（1文）
 2. supplementary_context (Object): 
    - clinical_significance (String): 歴史的背景、他の試験との比較、臨床的意義
    - patient_stories (String): ニュース等で見つかった患者視点や社会的な影響
@@ -122,8 +126,16 @@ class ScriptGenerator:
                 
             self.logger.info(f"Structured extraction for record {i+1}/{len(raw_records)}...")
             article_data = self._extract_rich_data(record)
-            if article_data:
-                processed_articles.append(article_data)
+            if not article_data:
+                continue
+
+            # Specialty filter: verify whether the paper belongs to cardiology/cardiovascular realm
+            if not getattr(article_data.paper_info, "is_cardiology", True):
+                reason = getattr(article_data.paper_info, "cardiology_relevance_reason", "非循環器疾患と判定")
+                self.logger.info(f"Excluding non-cardiology article: {article_data.paper_info.title} (Reason: {reason})")
+                continue
+
+            processed_articles.append(article_data)
         
         if not processed_articles:
             self.logger.warning("No articles successfully structured.")
