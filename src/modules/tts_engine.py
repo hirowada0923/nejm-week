@@ -6,14 +6,14 @@ from google import genai
 from google.genai import types
 
 # --- Constants ---
-TTS_MODEL = "gemini-2.5-flash-preview-tts" 
+TTS_MODEL = os.getenv("GEMINI_TTS_MODEL", "gemini-3.8-flash-tts")
 DEFAULT_VOICE_MALE = "Algieba"
 DEFAULT_VOICE_FEMALE = "Autonoe"
 
 class TTSEngine:
-    def __init__(self, api_key, model_name=TTS_MODEL):
+    def __init__(self, api_key, model_name=None):
         self.client = genai.Client(api_key=api_key)
-        self.model_name = model_name
+        self.model_name = model_name or TTS_MODEL
         self.logger = logging.getLogger(__name__)
 
     def _convert_to_wav(self, audio_data: bytes, rate=24000) -> bytes:
@@ -35,30 +35,47 @@ class TTSEngine:
 
     def _parse_script_to_parts(self, script_text):
         """
-        Parses the script and converts MaleHost/FemaleHost to Speaker 1/Speaker 2 tags
-        that the Gemini TTS model understands.
-        Joins everything into a single text block to prevent multi-turn confusion.
+        Parses script lines into individual types.Part objects with speech_metadata.speaker
+        set to Speaker 1 or Speaker 2 for modern Gemini TTS models (e.g. gemini-3.8-flash-tts).
+        Falls back to text block if using legacy 2.5 models.
         """
-        lines = []
+        parsed_dialogues = []
         for line in script_text.splitlines():
             line = line.strip()
             if not line:
                 continue
             
-            # Map roles to generic speaker names for the API
             male_match = re.match(r'(MaleHost|Speaker 1):\s*(.*)', line, re.IGNORECASE)
             female_match = re.match(r'(FemaleHost|Speaker 2):\s*(.*)', line, re.IGNORECASE)
             
             if male_match:
-                lines.append(f'Speaker 1: {male_match.group(2).strip()}')
+                speaker = "Speaker 1"
+                text = male_match.group(2).strip()
             elif female_match:
-                lines.append(f'Speaker 2: {female_match.group(2).strip()}')
+                speaker = "Speaker 2"
+                text = female_match.group(2).strip()
             else:
-                # Default to Speaker 1 if no prefix
-                lines.append(f'Speaker 1: {line}')
-        
-        full_text = "\n".join(lines)
-        return [types.Part.from_text(text=full_text)]
+                speaker = "Speaker 1"
+                text = line
+
+            if text:
+                parsed_dialogues.append((speaker, text))
+
+        # Check if running a legacy 2.5 TTS model
+        if "2.5" in self.model_name:
+            full_text = "\n".join([f"{spk}: {txt}" for spk, txt in parsed_dialogues])
+            return [types.Part.from_text(text=full_text)]
+
+        # Modern 3.8+ TTS models require speech_metadata on each Part
+        parts = []
+        for speaker, text in parsed_dialogues:
+            parts.append(
+                types.Part(
+                    text=text,
+                    speech_metadata=types.SpeechMetadata(speaker=speaker)
+                )
+            )
+        return parts
 
     def generate_audio(self, script_text, output_path):
         try:

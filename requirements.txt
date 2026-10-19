@@ -1,4 +1,4 @@
-google-genai
+google-genai>=2.31.0
 biopython
 python-dotenv
 google-api-python-client
