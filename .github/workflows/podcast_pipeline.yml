@@ -1,9 +1,9 @@
 name: NEJM Cardiology Podcast Automation
 
 on:
-  schedule:
-    # 毎週月曜日 04:00 JST (日曜日 19:00 UTC)
-    - cron: '0 19 * * 0'
+  # schedule:
+  #   # 毎週月曜日 04:00 JST (日曜日 19:00 UTC)
+  #   - cron: '0 19 * * 0'
   workflow_dispatch: # 手動実行用
 
 jobs:
